@@ -13,8 +13,15 @@ namespace ExchangeQuotesCalculator.Client
 {
     public class Program
     {
+        /// <summary>
+        /// Count of packages that server sent
+        /// </summary>
         private static long actualSentDgsCount = 0;
+        /// <summary>
+        /// Count of packages that client accepted (by pressing any key)
+        /// </summary>
         private static long dgsCount = 0;
+
         static async Task Main(string[] args)
         {
             var currentQuotation = new DoubleConcurrentBag();
@@ -26,12 +33,12 @@ namespace ExchangeQuotesCalculator.Client
                 calcTask = Task.Run(() => CalculateStatistics(current));
             };
 
-            Task.Run(() => ReceiveDatagram(currentQuotation));
+            Task.Run(() => ReceiveDatagrams(currentQuotation));
             
             while (true)
             {
                 Console.WriteLine("___________________________________________________________");
-                Console.WriteLine($"Нажмите любую клавишу, чтобы увидеть посчитанные показатели");
+                Console.WriteLine("Нажмите любую клавишу, чтобы увидеть посчитанные показатели");
                 Console.WriteLine("___________________________________________________________");
                 Console.ReadKey();
                 dgsCount++;
@@ -48,7 +55,7 @@ namespace ExchangeQuotesCalculator.Client
             }
         }
 
-        static void ReceiveDatagram(DoubleConcurrentBag quotation)
+        static void ReceiveDatagrams(DoubleConcurrentBag quotation)
         {
             var receiverClient = new UdpClient(5000);
             IPEndPoint iPEndPoint = null;
@@ -66,7 +73,7 @@ namespace ExchangeQuotesCalculator.Client
                         .ToList();
 
                     quotation.Clear();
-                    list.ForEach(d => quotation.Add(d));
+                    Parallel.ForEach(list, d => quotation.Add(d));
                     quotation.OnFullfilled();
                 }
             }

@@ -5,6 +5,9 @@ using System.Text;
 
 namespace ExchangeQuotesCalculator.Client
 {
+    /// <summary>
+    /// Custom concurrent bag with type <see cref="Double"/> and event handler for filling quotation up
+    /// </summary>
     public class DoubleConcurrentBag : ConcurrentBag<double>
     {
         public EventHandler FullfillEvent;
