@@ -17,20 +17,27 @@ namespace ExchangeQuotesCalculator.Client
         private static long dgsCount = 0;
         static async Task Main(string[] args)
         {
-            var currentQuotation = new ConcurrentBag<double>();
+            var currentQuotation = new DoubleConcurrentBag();
+
+            Task<QuotationInfo> calcTask = null;
+            currentQuotation.FullfillEvent += (sender, e) =>
+            {
+                var current = new ConcurrentBag<double>(currentQuotation);
+                calcTask = Task.Run(() => CalculateStatistics(current));
+            };
+
             Task.Run(() => ReceiveDatagram(currentQuotation));
-
-            var calcTask = Task.Run(() => CalculateStatistics(currentQuotation));
-
+            
             while (true)
             {
                 Console.WriteLine("___________________________________________________________");
-                Console.WriteLine("Нажмите любую клавишу, чтобы увидеть посчитанные показатели");
+                Console.WriteLine($"Нажмите любую клавишу, чтобы увидеть посчитанные показатели");
                 Console.WriteLine("___________________________________________________________");
                 Console.ReadKey();
                 dgsCount++;
+                
                 var quotationInfo = await calcTask;
-                Console.WriteLine($"Котировка: {string.Join(',', quotationInfo.OriginalQuotation)}\n");
+                Console.WriteLine($"Котировка: {string.Join(", ", quotationInfo.OriginalQuotation)}\n");
                 Console.WriteLine("Посчитанные по котировке показатели: \n");
                 Console.WriteLine($"Среднее арифметическое: {quotationInfo.Average}");
                 Console.WriteLine($"Медиана: {quotationInfo.Median}");
@@ -41,7 +48,7 @@ namespace ExchangeQuotesCalculator.Client
             }
         }
 
-        static void ReceiveDatagram(ConcurrentBag<double> quotation)
+        static void ReceiveDatagram(DoubleConcurrentBag quotation)
         {
             var receiverClient = new UdpClient(5000);
             IPEndPoint iPEndPoint = null;
@@ -60,6 +67,7 @@ namespace ExchangeQuotesCalculator.Client
 
                     quotation.Clear();
                     list.ForEach(d => quotation.Add(d));
+                    quotation.OnFullfilled();
                 }
             }
             finally
